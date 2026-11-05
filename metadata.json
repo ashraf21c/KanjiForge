@@ -1,0 +1,6 @@
+{
+  "name": "KanjiForge - Shinjitai & Kyūjitai Converter",
+  "description": "Professional Japanese Kanji converter between Shinjitai and Kyūjitai with batch processing, one-to-many ambiguity context detection, and character encodings (Unicode, JIS, Shift-JIS, Kuten).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
