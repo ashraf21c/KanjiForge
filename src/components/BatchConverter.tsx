@@ -153,16 +153,26 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ currentLang, fon
   // Set default selected char on initial load or text change
   useEffect(() => {
     if (workMode === 'single' && singleResult && singleResult.inputChars.length > 0) {
-      setSelectedInputChar(singleResult.inputChars[0]);
-      setSelectedOutputChar(singleResult.outputChars[0] || null);
+      const targetIdx = singleResult.changedIndices.length > 0
+        ? singleResult.changedIndices[0]
+        : (singleResult.ambiguities[0]?.charIndex ?? 0);
+      setSelectedInputChar(singleResult.inputChars[targetIdx] || singleResult.inputChars[0]);
+      setSelectedOutputChar(singleResult.outputChars[targetIdx] || singleResult.outputChars[0]);
     } else if (summary.lines.length > 0) {
-      const firstLine = summary.lines.find(l => l.inputChars.length > 0);
-      if (firstLine && firstLine.inputChars.length > 0) {
-        setSelectedInputChar(firstLine.inputChars[0]);
-        setSelectedOutputChar(firstLine.outputChars[0] || null);
+      const lineWithChange = summary.lines.find(l => l.changedIndices.length > 0);
+      if (lineWithChange && lineWithChange.inputChars.length > 0) {
+        const targetIdx = lineWithChange.changedIndices[0] ?? 0;
+        setSelectedInputChar(lineWithChange.inputChars[targetIdx] || lineWithChange.inputChars[0]);
+        setSelectedOutputChar(lineWithChange.outputChars[targetIdx] || lineWithChange.outputChars[0]);
+      } else {
+        const firstLine = summary.lines.find(l => l.inputChars.length > 0);
+        if (firstLine && firstLine.inputChars.length > 0) {
+          setSelectedInputChar(firstLine.inputChars[0]);
+          setSelectedOutputChar(firstLine.outputChars[0] || null);
+        }
       }
     }
-  }, [direction, workMode, singleWordInput]);
+  }, [direction, workMode, singleWordInput, inputText]);
 
   // Aggregate all unique output characters for the encoding table
   const allOutputChars = useMemo(() => {
@@ -539,25 +549,66 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ currentLang, fon
 
               {/* Character by Character Quick Codes Strip */}
               <div className="space-y-2">
-                <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                  構成文字コード一覧 (各文字をクリックで精密解析):
-                </span>
+                <div className="flex items-center justify-between text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                  <span>構成文字コード一覧 (各文字をクリックで精密解析):</span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                    変換文字を優先表示
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2 text-xs">
                   {singleResult.outputChars.map((outC, idx) => {
                     const inC = singleResult.inputChars[idx] || outC;
+                    const isChanged = singleResult.changedIndices.includes(idx);
+                    const isSelected = selectedOutputChar?.char === outC.char && selectedInputChar?.char === inC.char;
+
                     return (
                       <div
                         key={idx}
                         onClick={() => handleSelectCharForInspection(inC, outC)}
-                        className="p-2.5 rounded-lg bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 hover:border-amber-400 dark:hover:border-amber-600 transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs"
+                        className={`p-2.5 rounded-lg border transition-all cursor-pointer flex items-center justify-between gap-3 shadow-2xs ${
+                          isSelected
+                            ? 'bg-amber-50/70 dark:bg-amber-950/40 border-amber-500 dark:border-amber-500 ring-2 ring-amber-400/60 dark:ring-amber-500/50'
+                            : 'bg-white dark:bg-neutral-900 border-neutral-200 dark:border-neutral-800 hover:border-amber-400 dark:hover:border-amber-600'
+                        }`}
                       >
                         <div className="flex items-center gap-2.5">
-                          <span className={`w-8 h-8 rounded bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-lg font-bold ${fontClass}`}>
-                            {outC.char}
-                          </span>
+                          {isChanged ? (
+                            <div className="flex items-center gap-1 shrink-0">
+                              <span
+                                className={`w-7 h-7 rounded bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-sm font-bold ${fontClass} text-neutral-500 dark:text-neutral-400`}
+                                title={`変換前: ${inC.char}`}
+                              >
+                                {inC.char}
+                              </span>
+                              <span className="text-amber-500 dark:text-amber-400 font-bold text-xs">→</span>
+                              <span
+                                className={`w-7 h-7 rounded bg-amber-100 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700 flex items-center justify-center text-sm font-bold ${fontClass} text-amber-950 dark:text-amber-100`}
+                                title={`変換後: ${outC.char}`}
+                              >
+                                {outC.char}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className={`w-8 h-8 rounded bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-lg font-bold shrink-0 ${fontClass}`}>
+                              {outC.char}
+                            </span>
+                          )}
+
                           <div>
-                            <div className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 text-xs">
-                              {outC.unicodeHex}
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-mono font-semibold text-neutral-900 dark:text-neutral-100 text-xs">
+                                {outC.unicodeHex}
+                              </span>
+                              {isChanged && (
+                                <span className="px-1 py-0.2 rounded text-[10px] font-bold bg-amber-200/80 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200">
+                                  変換
+                                </span>
+                              )}
+                              {isSelected && (
+                                <span className="px-1 py-0.2 rounded text-[10px] font-medium bg-neutral-200 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300">
+                                  解析中
+                                </span>
+                              )}
                             </div>
                             <div className="text-[10px] text-neutral-400">
                               SJIS: <span className="font-mono">{outC.shiftJisHex}</span>
@@ -565,7 +616,7 @@ export const BatchConverter: React.FC<BatchConverterProps> = ({ currentLang, fon
                           </div>
                         </div>
 
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <div className="text-[11px] font-mono font-semibold text-amber-700 dark:text-amber-400">
                             {outC.kuten}
                           </div>

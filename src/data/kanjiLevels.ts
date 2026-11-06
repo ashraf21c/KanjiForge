@@ -80,9 +80,36 @@ const JLPT_N4_CHARS = new Set(
 );
 
 /**
- * Explicit dictionary of famous Kyūjitai (Classical) characters
+ * Explicit dictionary of specific Shinjitai and Kyūjitai characters with authoritative levels
  */
-const FAMOUS_KYUJITAI_MAP: Record<string, KanjiLevelData> = {
+const SPECIFIC_KANJI_LEVELS_MAP: Record<string, KanjiLevelData> = {
+  // Common Shinjitai in pairs & homophone kakikae
+  '混': { kanken: '6級 (小5)', jlpt: 'N2', grade: '小5 (第5学年)', gradeNumber: 5 },
+  '交': { kanken: '9級 (小2)', jlpt: 'N3', grade: '小2 (第2学年)', gradeNumber: 2 },
+  '継': { kanken: '3級 (中学)', jlpt: 'N2', grade: '中学 (第7〜9学年)', gradeNumber: '中' },
+  '体': { kanken: '9級 (小2)', jlpt: 'N4', grade: '小2 (第2学年)', gradeNumber: 2 },
+  '弁': { kanken: '6級 (小5)', jlpt: 'N1', grade: '小5 (第5学年)', gradeNumber: 5 },
+  '護': { kanken: '6級 (小5)', jlpt: 'N2', grade: '小5 (第5学年)', gradeNumber: 5 },
+  '士': { kanken: '7級 (小4)', jlpt: 'N3', grade: '小4 (第4学年)', gradeNumber: 4 },
+  '予': { kanken: '8級 (小3)', jlpt: 'N3', grade: '小3 (第3学年)', gradeNumber: 3 },
+  '定': { kanken: '8級 (小3)', jlpt: 'N3', grade: '小3 (第3学年)', gradeNumber: 3 },
+  '芸': { kanken: '7級 (小4)', jlpt: 'N3', grade: '小4 (第4学年)', gradeNumber: 4 },
+  '術': { kanken: '6級 (小5)', jlpt: 'N3', grade: '小5 (第5学年)', gradeNumber: 5 },
+  '欠': { kanken: '7級 (小4)', jlpt: 'N3', grade: '小4 (第4学年)', gradeNumber: 4 },
+  '缶': { kanken: '3級 (中学)', jlpt: 'N1', grade: '中学 (常用)', gradeNumber: '中' },
+  '台': { kanken: '9級 (小2)', jlpt: 'N4', grade: '小2 (第2学年)', gradeNumber: 2 },
+  '国': { kanken: '9級 (小2)', jlpt: 'N5', grade: '小2 (第2学年)', gradeNumber: 2 },
+  '桜': { kanken: '6級 (小5)', jlpt: 'N2', grade: '小5 (第5学年)', gradeNumber: 5 },
+  '学': { kanken: '10級 (小1)', jlpt: 'N5', grade: '小1 (第1学年)', gradeNumber: 1 },
+  '気': { kanken: '10級 (小1)', jlpt: 'N5', grade: '小1 (第1学年)', gradeNumber: 1 },
+  '鉄': { kanken: '8級 (小3)', jlpt: 'N3', grade: '小3 (第3学年)', gradeNumber: 3 },
+  '扇': { kanken: '準2級 (中学)', jlpt: 'N1', grade: '中学 (常用)', gradeNumber: '中' },
+  '竜': { kanken: '準2級 (中学)', jlpt: 'N1', grade: '中学 (常用)', gradeNumber: '中' },
+  '渡': { kanken: '3級 (中学)', jlpt: 'N2', grade: '中学 (常用)', gradeNumber: '中' },
+  '辺': { kanken: '7級 (小4)', jlpt: 'N3', grade: '小4 (第4学年)', gradeNumber: 4 },
+  '斉': { kanken: '3級 (中学)', jlpt: 'N1', grade: '中学 (常用)', gradeNumber: '中' },
+  '藤': { kanken: '準2級 (中学)', jlpt: 'N1', grade: '中学 (常用)', gradeNumber: '中' },
+
   // Classical equivalents
   '國': { kanken: '1級 (旧字)', jlpt: 'N1+ (古典)', grade: '旧字・古典', gradeNumber: '旧' },
   '櫻': { kanken: '準1級 (人名・旧字)', jlpt: 'N1+ (古典)', grade: '旧字・人名', gradeNumber: '旧' },
@@ -121,10 +148,10 @@ const FAMOUS_KYUJITAI_MAP: Record<string, KanjiLevelData> = {
   '颱': { kanken: '1級 (旧字)', jlpt: 'N1+ (古典)', grade: '旧字・表外', gradeNumber: '旧' },
   '龍': { kanken: '準1級 (人名・旧字)', jlpt: 'N1+ (古典)', grade: '旧字・人名', gradeNumber: '旧' },
   '臺': { kanken: '1級 (旧字)', jlpt: 'N1+ (古典)', grade: '旧字・古典', gradeNumber: '旧' },
-  '扇': { kanken: '準2級', jlpt: 'N1', grade: '中学', gradeNumber: '中' },
   '煽': { kanken: '準1級', jlpt: 'N1', grade: '高校・常用', gradeNumber: '高' },
   '餘': { kanken: '1級 (旧字)', jlpt: 'N1+ (古典)', grade: '旧字・古典', gradeNumber: '旧' },
-  '鬱': { kanken: '準1級〜2級', jlpt: 'N1', grade: '常用・高校', gradeNumber: '高' },
+  '鬱': { kanken: '2級 (常用)', jlpt: 'N1', grade: '高校 (常用)', gradeNumber: '高' },
+  '繼': { kanken: '1級 (旧字)', jlpt: 'N1+ (古典)', grade: '旧字・古典', gradeNumber: '旧' },
 };
 
 /**
@@ -135,9 +162,9 @@ export function getKanjiLevel(char: string, isKyujitaiCandidate = false): KanjiL
     return { kanken: 'N/A', jlpt: 'N/A', grade: 'N/A' };
   }
 
-  // 1. Direct hit in famous Kyūjitai/historical map
-  if (FAMOUS_KYUJITAI_MAP[char]) {
-    return FAMOUS_KYUJITAI_MAP[char];
+  // 1. Direct hit in specific lookup map
+  if (SPECIFIC_KANJI_LEVELS_MAP[char]) {
+    return SPECIFIC_KANJI_LEVELS_MAP[char];
   }
 
   // 2. Elementary School Grade 1 (小1)

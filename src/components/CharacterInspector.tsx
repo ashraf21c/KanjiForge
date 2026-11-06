@@ -2,12 +2,18 @@ import React, { useState } from 'react';
 import { Copy, Check, Info, Hash, BookOpen } from 'lucide-react';
 import { KanjiCharInfo, Language } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
+import { KANJI_THEMES, KanjiColorThemeKey } from '../utils/kanjiThemes';
 
 interface CharacterInspectorProps {
   inputChar: KanjiCharInfo | null;
   outputChar: KanjiCharInfo | null;
   currentLang: Language;
   fontMode: 'serif' | 'sans';
+  colorTheme?: KanjiColorThemeKey;
+  orderSymbol?: string;
+  badgeLabel?: string;
+  pairTitle?: string;
+  showHeader?: boolean;
 }
 
 export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
@@ -15,9 +21,16 @@ export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
   outputChar,
   currentLang,
   fontMode,
+  colorTheme,
+  orderSymbol,
+  badgeLabel,
+  pairTitle,
+  showHeader = true,
 }) => {
   const t = TRANSLATIONS[currentLang];
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
+
+  const theme = colorTheme ? KANJI_THEMES[colorTheme] : null;
 
   const handleCopy = (text: string, key: string) => {
     if (!text || text === 'N/A') return;
@@ -40,19 +53,32 @@ export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
     if (!info) return null;
 
     const fontClass = fontMode === 'serif' ? 'font-serif' : 'font-sans';
+    const cardBorder = theme
+      ? theme.cardBorder
+      : 'border-neutral-200 dark:border-neutral-800';
+    const glyphBoxStyle = theme
+      ? `${theme.glyphBoxBg} ${theme.glyphBoxBorder} ${theme.glyphText}`
+      : 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 border-neutral-200 dark:border-neutral-700';
 
     return (
-      <div className="flex-1 bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl p-5 shadow-xs flex flex-col gap-4">
+      <div className={`flex-1 bg-white dark:bg-neutral-900 border rounded-xl p-5 shadow-xs flex flex-col gap-4 ${cardBorder}`}>
         {/* Top: Glyph Display and Primary Info */}
         <div className="flex items-start justify-between gap-4 border-b border-neutral-100 dark:border-neutral-800/80 pb-4">
           <div className="flex items-center gap-4">
-            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl bg-neutral-100 dark:bg-neutral-800 flex items-center justify-center text-4xl sm:text-5xl font-bold text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-neutral-700 select-all shadow-inner ${fontClass}`}>
+            <div className={`w-16 h-16 sm:w-20 sm:h-20 rounded-xl border flex items-center justify-center text-4xl sm:text-5xl font-bold select-all shadow-inner ${glyphBoxStyle} ${fontClass}`}>
               {info.char}
             </div>
             <div>
-              <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
-                {label}
-              </span>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 dark:text-neutral-500">
+                  {label}
+                </span>
+                {orderSymbol && (
+                  <span className={`text-[10px] font-bold px-1.5 py-0.2 rounded ${theme?.badgeText || 'bg-neutral-200 text-neutral-800'}`}>
+                    {orderSymbol}
+                  </span>
+                )}
+              </div>
               <h4 className="text-base font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
                 <span>{info.unicodeHex}</span>
                 <button
@@ -266,16 +292,28 @@ export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100">
-            {t.inspectorTitle}
-          </h3>
-          <p className="text-xs text-neutral-500 dark:text-neutral-400">
-            {t.inspectorSubtitle}
-          </p>
+      {showHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-sm font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-2">
+              <span>{t.inspectorTitle}</span>
+              {orderSymbol && (
+                <span className={`text-xs px-2 py-0.5 rounded font-mono ${theme?.badgeText || ''}`}>
+                  {orderSymbol}
+                </span>
+              )}
+              {pairTitle && (
+                <span className="text-xs font-mono px-2 py-0.5 rounded bg-neutral-100 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300">
+                  {pairTitle}
+                </span>
+              )}
+            </h3>
+            <p className="text-xs text-neutral-500 dark:text-neutral-400">
+              {t.inspectorSubtitle}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {renderCharCard(inputChar, t.inputGlyph, true)}

@@ -26,6 +26,7 @@ import { convertBatch } from '../services/converterService';
 import { CharacterInspector } from './CharacterInspector';
 import { EncodingTable } from './EncodingTable';
 import { AmbiguityModal } from './AmbiguityModal';
+import { getKanjiThemeForCharIndex } from '../utils/kanjiThemes';
 
 interface EducationalConsoleProps {
   currentLang: Language;
@@ -156,13 +157,20 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
   // Set default selected char on initial load or text change
   useEffect(() => {
     if (summary.lines.length > 0) {
-      const firstLine = summary.lines.find(l => l.inputChars.length > 0);
-      if (firstLine && firstLine.inputChars.length > 0) {
-        setSelectedInputChar(firstLine.inputChars[0]);
-        setSelectedOutputChar(firstLine.outputChars[0] || null);
+      const lineWithChange = summary.lines.find(l => l.changedIndices.length > 0);
+      if (lineWithChange && lineWithChange.inputChars.length > 0) {
+        const targetIdx = lineWithChange.changedIndices[0] ?? 0;
+        setSelectedInputChar(lineWithChange.inputChars[targetIdx] || lineWithChange.inputChars[0]);
+        setSelectedOutputChar(lineWithChange.outputChars[targetIdx] || lineWithChange.outputChars[0]);
+      } else {
+        const firstLine = summary.lines.find(l => l.inputChars.length > 0);
+        if (firstLine && firstLine.inputChars.length > 0) {
+          setSelectedInputChar(firstLine.inputChars[0]);
+          setSelectedOutputChar(firstLine.outputChars[0] || null);
+        }
       }
     }
-  }, [direction]);
+  }, [direction, inputText]);
 
   // Aggregate all unique output characters for the encoding table
   const allOutputChars = useMemo(() => {
@@ -727,14 +735,15 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                             type="button"
                             onClick={() => {
                               if (line.inputChars.length > 0) {
+                                const targetIdx = line.changedIndices.length > 0 ? line.changedIndices[0] : 0;
                                 handleSelectCharForInspection(
-                                  line.inputChars[0],
-                                  line.outputChars[0]
+                                  line.inputChars[targetIdx] || line.inputChars[0],
+                                  line.outputChars[targetIdx] || line.outputChars[0]
                                 );
                               }
                             }}
                             className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            title="この行の文字をインスペクターで開く"
+                            title="この行の変換文字をインスペクターで開く"
                           >
                             <FileCode className="w-3.5 h-3.5" />
                           </button>
@@ -769,19 +778,27 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                     {/* Before */}
                     <div className="flex items-center gap-2 text-xs">
                       <span className="text-neutral-400 w-12 shrink-0 font-medium">原文:</span>
-                      <div className={`flex items-center gap-1 flex-wrap ${fontClass}`}>
-                        {line.inputChars.map((c, cIdx) => (
-                          <span
-                            key={cIdx}
-                            className={`px-1 py-0.5 rounded ${sizeStyles.token} ${
-                              line.changedIndices.includes(cIdx)
-                                ? 'bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300'
-                                : 'text-neutral-600 dark:text-neutral-400'
-                            }`}
-                          >
-                            {c.char}
-                          </span>
-                        ))}
+                      <div className={`flex items-center gap-1.5 flex-wrap ${fontClass}`}>
+                        {line.inputChars.map((c, cIdx) => {
+                          const theme = getKanjiThemeForCharIndex(cIdx, line.changedIndices);
+                          return (
+                            <span
+                              key={cIdx}
+                              className={`px-1.5 py-0.5 rounded ${sizeStyles.token} flex items-center gap-1 ${
+                                theme
+                                  ? `${theme.tokenBg} ${theme.tokenBorder} border ${theme.tokenText} font-semibold`
+                                  : 'text-neutral-600 dark:text-neutral-400'
+                              }`}
+                            >
+                              <span>{c.char}</span>
+                              {theme && (
+                                <span className={`text-[9px] font-bold px-1 rounded-full ${theme.badgeBg}`}>
+                                  {theme.numberSymbol}
+                                </span>
+                              )}
+                            </span>
+                          );
+                        })}
                       </div>
                     </div>
 
@@ -790,7 +807,7 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                       <span className="text-neutral-400 w-12 shrink-0 font-medium">変換:</span>
                       <div className={`flex items-center gap-1.5 flex-wrap ${fontClass}`}>
                         {line.outputChars.map((c, cIdx) => {
-                          const isChanged = line.changedIndices.includes(cIdx);
+                          const theme = getKanjiThemeForCharIndex(cIdx, line.changedIndices);
                           const inChar = line.inputChars[cIdx];
 
                           return (
@@ -799,14 +816,19 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                               type="button"
                               onClick={() => handleSelectCharForInspection(inChar || c, c)}
                               className={`px-1.5 py-0.5 rounded ${sizeStyles.token} transition-all flex items-center gap-1 ${
-                                isChanged
-                                  ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-900 dark:text-amber-200 font-bold border border-amber-400 dark:border-amber-700 shadow-2xs hover:scale-105'
+                                theme
+                                  ? `${theme.tokenBg} ${theme.tokenBorder} border ${theme.tokenText} font-bold shadow-2xs hover:scale-105`
                                   : 'text-neutral-800 dark:text-neutral-200 hover:bg-neutral-200 dark:hover:bg-neutral-800'
                               }`}
                             >
                               <span>{c.char}</span>
-                              {isChanged && inChar && (
-                                <span className="text-[10px] text-amber-600 dark:text-amber-400 font-normal">
+                              {theme && (
+                                <span className={`text-[9px] font-bold px-1 rounded-full ${theme.badgeBg}`}>
+                                  {theme.numberSymbol}
+                                </span>
+                              )}
+                              {theme && inChar && (
+                                <span className={`text-[10px] ${theme.arrowColor} font-normal`}>
                                   ({inChar.char}→)
                                 </span>
                               )}
