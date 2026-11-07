@@ -1,25 +1,54 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Header, ActivePage } from './components/Header';
 import { EducationalConsole } from './components/EducationalConsole';
 import { QuickWordConverter } from './components/QuickWordConverter';
 import { OrthographyLibrary } from './components/OrthographyLibrary';
-import { Language, KanjiFontSize } from './types/kanji';
+import { AccessibilityModal } from './components/AccessibilityModal';
+import { Language, KanjiFontSize, FontMode, AccessibilitySettings } from './types/kanji';
 import { detectLanguage, saveLanguagePreference, TRANSLATIONS } from './i18n/translations';
+
+const DEFAULT_ACCESSIBILITY_SETTINGS: AccessibilitySettings = {
+  fontSize: 'md',
+  fontMode: 'serif',
+  highContrast: false,
+  showRuby: false,
+  reducedMotion: false,
+  speechRate: 1.0,
+};
 
 export default function App() {
   const [currentLang, setCurrentLang] = useState<Language>(() => detectLanguage());
-  const [fontMode, setFontMode] = useState<'serif' | 'sans'>('serif');
-  const [fontSize, setFontSize] = useState<KanjiFontSize>(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('kanji_font_size');
-      if (saved === 'sm' || saved === 'md' || saved === 'lg' || saved === 'xl') {
-        return saved;
-      }
-    }
-    return 'md';
-  });
   const [activePage, setActivePage] = useState<ActivePage>('educational');
   const [consoleInitialText, setConsoleInitialText] = useState<string | undefined>(undefined);
+  const [isAccessibilityModalOpen, setIsAccessibilityModalOpen] = useState<boolean>(false);
+  const [srAnnouncement, setSrAnnouncement] = useState<string>('');
+
+  // Comprehensive Accessibility State (WCAG 2.2 AAA & JIS X 8341-3)
+  const [accessibilitySettings, setAccessibilitySettings] = useState<AccessibilitySettings>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('kanji_accessibility_settings');
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          return {
+            ...DEFAULT_ACCESSIBILITY_SETTINGS,
+            ...parsed,
+          };
+        } catch (e) {
+          console.warn('Failed to parse saved accessibility settings', e);
+        }
+      }
+      // Check legacy font size if present
+      const legacySize = localStorage.getItem('kanji_font_size');
+      if (legacySize === 'sm' || legacySize === 'md' || legacySize === 'lg' || legacySize === 'xl') {
+        return {
+          ...DEFAULT_ACCESSIBILITY_SETTINGS,
+          fontSize: legacySize,
+        };
+      }
+    }
+    return DEFAULT_ACCESSIBILITY_SETTINGS;
+  });
 
   const [isDark, setIsDark] = useState<boolean>(() => {
     if (typeof window !== 'undefined') {
@@ -32,10 +61,29 @@ export default function App() {
     return false;
   });
 
-  // Sync font size preference
+  // Persist accessibility settings
   useEffect(() => {
-    localStorage.setItem('kanji_font_size', fontSize);
-  }, [fontSize]);
+    localStorage.setItem('kanji_accessibility_settings', JSON.stringify(accessibilitySettings));
+    localStorage.setItem('kanji_font_size', accessibilitySettings.fontSize);
+  }, [accessibilitySettings]);
+
+  // Sync high contrast CSS class on document element
+  useEffect(() => {
+    if (accessibilitySettings.highContrast) {
+      document.documentElement.classList.add('high-contrast');
+    } else {
+      document.documentElement.classList.remove('high-contrast');
+    }
+  }, [accessibilitySettings.highContrast]);
+
+  // Sync reduced motion CSS class on document element
+  useEffect(() => {
+    if (accessibilitySettings.reducedMotion) {
+      document.documentElement.classList.add('reduce-motion');
+    } else {
+      document.documentElement.classList.remove('reduce-motion');
+    }
+  }, [accessibilitySettings.reducedMotion]);
 
   // Sync dark theme class on document element
   useEffect(() => {
@@ -58,6 +106,64 @@ export default function App() {
       document.documentElement.setAttribute('lang', currentLang);
     }
   }, [currentLang]);
+
+  // Screen reader announcer helper
+  const handleAnnounce = useCallback((message: string) => {
+    setSrAnnouncement(message);
+  }, []);
+
+  // Keyboard navigation & accessibility shortcuts (Alt + A, Alt + 1, Alt + 2, Alt + 3, Alt + S, Alt + C)
+  useEffect(() => {
+    const handleGlobalKeyDown = (e: KeyboardEvent) => {
+      // Ignore if user is inside an input or textarea (unless modifier is pressed)
+      const target = e.target as HTMLElement | null;
+      const isInput = target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA');
+
+      if (e.altKey && !e.ctrlKey && !e.metaKey) {
+        if (e.key === 'a' || e.key === 'A') {
+          e.preventDefault();
+          setIsAccessibilityModalOpen(prev => !prev);
+        } else if (e.key === '1') {
+          e.preventDefault();
+          setActivePage('quick_word');
+          handleAnnounce('単語即時変換画面に切り替えました。');
+        } else if (e.key === '2') {
+          e.preventDefault();
+          setActivePage('educational');
+          handleAnnounce('学術コンソール画面に切り替えました。');
+        } else if (e.key === '3') {
+          e.preventDefault();
+          setActivePage('library');
+          handleAnnounce('同音書き換え学術解説ライブラリ画面に切り替えました。');
+        } else if (e.key === 's' || e.key === 'S') {
+          e.preventDefault();
+          setAccessibilitySettings(prev => {
+            const nextSize: KanjiFontSize =
+              prev.fontSize === 'sm'
+                ? 'md'
+                : prev.fontSize === 'md'
+                ? 'lg'
+                : prev.fontSize === 'lg'
+                ? 'xl'
+                : 'sm';
+            const sizeLabel = nextSize === 'sm' ? '小 (14px)' : nextSize === 'md' ? '中 (16px)' : nextSize === 'lg' ? '大 (20px)' : '特大 (26px)';
+            handleAnnounce(`文字サイズを ${sizeLabel} に変更しました。`);
+            return { ...prev, fontSize: nextSize };
+          });
+        } else if (e.key === 'c' || e.key === 'C') {
+          e.preventDefault();
+          setAccessibilitySettings(prev => {
+            const nextContrast = !prev.highContrast;
+            handleAnnounce(nextContrast ? '高コントラストモードを有効にしました。' : '高コントラストモードを無効にしました。');
+            return { ...prev, highContrast: nextContrast };
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleGlobalKeyDown);
+    return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+  }, [handleAnnounce]);
 
   const handleLanguageChange = (lang: Language) => {
     setCurrentLang(lang);
@@ -82,24 +188,45 @@ export default function App() {
         isArabic ? 'font-arabic' : 'font-sans'
       }`}
     >
+      {/* WCAG 2.2 AAA Skip-to-content Link for Keyboard Users */}
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2 focus:bg-amber-600 focus:text-white focus:rounded-lg focus:shadow-xl focus:font-bold focus:text-sm focus:outline-hidden focus:ring-4 focus:ring-amber-300"
+      >
+        {t.skipToMainContent}
+      </a>
+
+      {/* Screen Reader Live Region for Dynamic Announcements */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {srAnnouncement}
+      </div>
+
       {/* Top Bar */}
       <Header
         currentLang={currentLang}
         onLanguageChange={handleLanguageChange}
-        fontMode={fontMode}
-        onFontModeChange={setFontMode}
-        fontSize={fontSize}
-        onFontSizeChange={setFontSize}
+        fontMode={accessibilitySettings.fontMode}
+        onFontModeChange={mode => setAccessibilitySettings(s => ({ ...s, fontMode: mode }))}
+        fontSize={accessibilitySettings.fontSize}
+        onFontSizeChange={size => setAccessibilitySettings(s => ({ ...s, fontSize: size }))}
         isDark={isDark}
         onToggleDark={handleToggleDark}
         activePage={activePage}
-        onPageChange={page => {
-          setActivePage(page);
-        }}
+        onPageChange={page => setActivePage(page)}
+        onOpenAccessibility={() => setIsAccessibilityModalOpen(true)}
       />
 
       {/* Main Content Viewport */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+      <main
+        id="main-content"
+        tabIndex={-1}
+        className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6 focus:outline-hidden"
+      >
         {/* Editorial Hero Header */}
         <div className="space-y-2 border-b border-neutral-200 dark:border-neutral-800 pb-6">
           <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
@@ -135,7 +262,7 @@ export default function App() {
               currentLang === 'ja'
                 ? '「混交」から「混淆」をはじめとする、国語審議会「同音の漢字による書きかえ」報告の代表的な一対多統合文字・代用字の学術解説集です。'
                 : currentLang === 'ar'
-                ? 'دليل أكاديمي يوثق أبرز حالات الدمج الصوتي والتبسيط المعجمي (من 混交 إلى 混淆، وأحرف 弁، 芸، 予، 欠، إلخ).'
+                ? 'دليل أكاديمي يوثق أبرز حالات الدمج الصوتي والتبسيط المعجمي (من 混交 إلى 混淆، وأحرف 弁، 芸、予、欠、 إلخ).'
                 : 'Scholarly catalog of official homophone substitutions (Kakikae) and 1-to-many kanji mergers (from 混交 to 混淆, 弁, 芸, 予, 欠, etc.).'
             )}
           </p>
@@ -145,27 +272,33 @@ export default function App() {
         {activePage === 'educational' && (
           <EducationalConsole
             currentLang={currentLang}
-            fontMode={fontMode}
-            fontSize={fontSize}
-            onFontSizeChange={setFontSize}
+            fontMode={accessibilitySettings.fontMode}
+            fontSize={accessibilitySettings.fontSize}
+            onFontSizeChange={size => setAccessibilitySettings(s => ({ ...s, fontSize: size }))}
             initialText={consoleInitialText}
+            showRuby={accessibilitySettings.showRuby}
+            speechRate={accessibilitySettings.speechRate}
+            onAnnounce={handleAnnounce}
           />
         )}
 
         {activePage === 'quick_word' && (
           <QuickWordConverter
             currentLang={currentLang}
-            fontMode={fontMode}
-            fontSize={fontSize}
-            onFontSizeChange={setFontSize}
+            fontMode={accessibilitySettings.fontMode}
+            fontSize={accessibilitySettings.fontSize}
+            onFontSizeChange={size => setAccessibilitySettings(s => ({ ...s, fontSize: size }))}
             onOpenInEducationalConsole={handleOpenInEducationalConsole}
+            showRuby={accessibilitySettings.showRuby}
+            speechRate={accessibilitySettings.speechRate}
+            onAnnounce={handleAnnounce}
           />
         )}
 
         {activePage === 'library' && (
           <OrthographyLibrary
             currentLang={currentLang}
-            fontMode={fontMode}
+            fontMode={accessibilitySettings.fontMode}
             onSelectCompoundForTesting={handleOpenInEducationalConsole}
           />
         )}
@@ -188,6 +321,15 @@ export default function App() {
           </div>
         </div>
       </footer>
+
+      {/* WCAG 2.2 AAA Accessibility Center Modal */}
+      <AccessibilityModal
+        isOpen={isAccessibilityModalOpen}
+        onClose={() => setIsAccessibilityModalOpen(false)}
+        currentLang={currentLang}
+        settings={accessibilitySettings}
+        onUpdateSettings={setAccessibilitySettings}
+      />
     </div>
   );
 }

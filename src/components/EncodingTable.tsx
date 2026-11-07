@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { Search, Copy, Check, Filter } from 'lucide-react';
-import { KanjiCharInfo, Language } from '../types/kanji';
+import { KanjiCharInfo, Language, FontMode } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
 
 interface EncodingTableProps {
   characters: KanjiCharInfo[];
   currentLang: Language;
-  fontMode: 'serif' | 'sans';
+  fontMode: FontMode;
   onSelectChar: (char: KanjiCharInfo) => void;
 }
 
@@ -53,7 +53,12 @@ export const EncodingTable: React.FC<EncodingTableProps> = ({
     setTimeout(() => setCopiedKey(null), 1500);
   };
 
-  const fontClass = fontMode === 'serif' ? 'font-serif' : 'font-sans';
+  const fontClass =
+    fontMode === 'serif'
+      ? 'font-serif'
+      : fontMode === 'ud'
+      ? 'font-ud font-medium'
+      : 'font-sans';
 
   return (
     <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 rounded-xl overflow-hidden shadow-xs flex flex-col">

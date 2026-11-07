@@ -1,19 +1,21 @@
 import React, { useState } from 'react';
-import { Copy, Check, Info, Hash, BookOpen } from 'lucide-react';
-import { KanjiCharInfo, Language } from '../types/kanji';
+import { Copy, Check, Info, Hash, BookOpen, Volume2 } from 'lucide-react';
+import { KanjiCharInfo, Language, FontMode } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
 import { KANJI_THEMES, KanjiColorThemeKey } from '../utils/kanjiThemes';
+import { speakJapaneseText } from '../utils/accessibility';
 
 interface CharacterInspectorProps {
   inputChar: KanjiCharInfo | null;
   outputChar: KanjiCharInfo | null;
   currentLang: Language;
-  fontMode: 'serif' | 'sans';
+  fontMode: FontMode;
   colorTheme?: KanjiColorThemeKey;
   orderSymbol?: string;
   badgeLabel?: string;
   pairTitle?: string;
   showHeader?: boolean;
+  speechRate?: number;
 }
 
 export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
@@ -26,6 +28,7 @@ export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
   badgeLabel,
   pairTitle,
   showHeader = true,
+  speechRate = 1.0,
 }) => {
   const t = TRANSLATIONS[currentLang];
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
@@ -52,7 +55,12 @@ export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
   const renderCharCard = (info: KanjiCharInfo | null, label: string, isSource: boolean) => {
     if (!info) return null;
 
-    const fontClass = fontMode === 'serif' ? 'font-serif' : 'font-sans';
+    const fontClass =
+      fontMode === 'serif'
+        ? 'font-serif'
+        : fontMode === 'ud'
+        ? 'font-ud font-medium'
+        : 'font-sans';
     const cardBorder = theme
       ? theme.cardBorder
       : 'border-neutral-200 dark:border-neutral-800';
@@ -88,6 +96,15 @@ export const CharacterInspector: React.FC<CharacterInspectorProps> = ({
                   className="p-1 rounded text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
                 >
                   {copiedKey === `${label}_uni` ? <Check className="w-3.5 h-3.5 text-emerald-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => speakJapaneseText(info.char, speechRate)}
+                  title="日本語の音声を聞く (Listen to Japanese pronunciation)"
+                  aria-label={`${info.char}の日本語音声を再生`}
+                  className="p-1 rounded text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                >
+                  <Volume2 className="w-3.5 h-3.5" />
                 </button>
               </h4>
               <p className="text-xs text-neutral-500 dark:text-neutral-400 mt-0.5">

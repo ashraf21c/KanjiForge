@@ -6,10 +6,71 @@
   --font-serif: 'Noto Serif JP', 'Shippori Mincho', serif;
   --font-mono: 'IBM Plex Mono', Menlo, Monaco, Consolas, monospace;
   --font-arabic: 'IBM Plex Sans Arabic', 'Plus Jakarta Sans', sans-serif;
+  --font-ud: 'BIZ UDPGothic', 'Hiragino Sans', 'Meiryo', 'Noto Sans JP', sans-serif;
 }
 
 :root {
   color-scheme: light dark;
+}
+
+/* Accessible Ruby / Furigana Typography */
+ruby {
+  ruby-position: over;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: bottom;
+  line-height: 1.2;
+}
+rt {
+  font-size: 0.52em;
+  font-weight: 500;
+  line-height: 1;
+  text-align: center;
+  user-select: none;
+  font-family: var(--font-sans);
+}
+
+/* Accessible Focus Indicators (WCAG 2.2 AA / AAA) */
+:focus-visible {
+  outline: 3px solid #f59e0b !important;
+  outline-offset: 2px !important;
+}
+
+/* High Contrast Mode (WCAG AAA 7:1+ contrast) */
+html.high-contrast {
+  filter: contrast(1.25);
+}
+html.high-contrast body {
+  background-color: #ffffff;
+  color: #000000;
+}
+html.high-contrast.dark body {
+  background-color: #000000;
+  color: #ffffff;
+}
+html.high-contrast button,
+html.high-contrast input,
+html.high-contrast textarea,
+html.high-contrast select {
+  border-width: 2px !important;
+}
+
+/* Reduced Motion Mode */
+html.reduce-motion * {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Custom scrollbars for data tables and inspectors */

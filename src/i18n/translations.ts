@@ -95,6 +95,24 @@ export interface Translations {
   aboutText: string;
   kakikaeNotice: string;
   langName: string;
+  // Accessibility & Assistive Features
+  accessibilityTitle: string;
+  accessibilitySubtitle: string;
+  accessibilityBtn: string;
+  highContrastLabel: string;
+  highContrastDesc: string;
+  showRubyLabel: string;
+  showRubyDesc: string;
+  reducedMotionLabel: string;
+  reducedMotionDesc: string;
+  ttsLabel: string;
+  ttsDesc: string;
+  ttsPlayBtn: string;
+  ttsSpeedLabel: string;
+  fontUdLabel: string;
+  keyboardShortcutsTitle: string;
+  skipToMainContent: string;
+  closeDialog: string;
 }
 
 export const TRANSLATIONS: Record<Language, Translations> = {
@@ -184,6 +202,24 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     aboutText: '当ツールは、1946年の当用漢字表および1956年の国語審議会「同音の漢字による書きかえ」報告に対応しています。例えば「混交」は本来「混淆」でしたが、当用漢字表外の「淆」が「交」に書き換えられた歴史的経緯があります。当ツールは熟語文脈を解析して適切な正字を提案します。',
     kakikaeNotice: '同音書き換え（代用漢字）の自動照合エンジン搭載',
     langName: '日本語',
+    // Accessibility
+    accessibilityTitle: 'アクセシビリティ設定',
+    accessibilitySubtitle: '国際規格 (WCAG 2.2 / JIS X 8341-3) 準拠の支援機能・視覚・音声コントロール',
+    accessibilityBtn: 'アクセシビリティ',
+    highContrastLabel: '高コントラスト表示 (WCAG AAA)',
+    highContrastDesc: '文字の輪郭やコントラスト比を最大化し、弱視や白内障の方でも読みやすくします',
+    showRubyLabel: 'ルビ・ふりがな表示',
+    showRubyDesc: '漢字の上に読み仮名（ひらがな）を表示し、ディスレクシアや日本語学習を支援します',
+    reducedMotionLabel: '視覚効果・アニメーション抑制',
+    reducedMotionDesc: 'めまいや乗り物酔いを防ぐため、画面の動きやトランジションを最小化します',
+    ttsLabel: '日本語音声読み上げ (Web Speech API)',
+    ttsDesc: 'ブラウザ標準の音声合成で漢字や単語の発音を自然な日本語で再生します',
+    ttsPlayBtn: '発音を聞く',
+    ttsSpeedLabel: '読み上げ速度',
+    fontUdLabel: 'UD高視認性フォント (UDゴシック)',
+    keyboardShortcutsTitle: 'キーボードショートカット一覧',
+    skipToMainContent: 'メインコンテンツへスキップ',
+    closeDialog: '閉じる',
   },
 
   en: {
@@ -272,6 +308,24 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     aboutText: 'This converter handles the 1956 Japanese Language Council "Kakikae" report. For instance, "混交" (mingling) historically derived from "混淆" where the classical kanji 淆 was substituted by 交. KanjiForge detects compound context and alerts you to 1-to-many nuances.',
     kakikaeNotice: 'Equipped with Contextual Homophone Substitution Engine',
     langName: 'English',
+    // Accessibility
+    accessibilityTitle: 'Accessibility Preferences',
+    accessibilitySubtitle: 'International standards (WCAG 2.2 AA/AAA) & assistive learning features',
+    accessibilityBtn: 'Accessibility',
+    highContrastLabel: 'High Contrast Mode (WCAG AAA)',
+    highContrastDesc: 'Maximizes contrast ratios (7:1+) and sharpens borders for low-vision users',
+    showRubyLabel: 'Ruby / Furigana Readings',
+    showRubyDesc: 'Displays phonetic Hiragana readings above Kanji to assist dyslexia and language learners',
+    reducedMotionLabel: 'Reduce Motion',
+    reducedMotionDesc: 'Suppresses motion, scaling, and transitions to prevent vestibular discomfort',
+    ttsLabel: 'Japanese Text-to-Speech (Web Speech API)',
+    ttsDesc: 'Reads Kanji and words aloud in authentic Japanese pronunciation completely offline',
+    ttsPlayBtn: 'Listen',
+    ttsSpeedLabel: 'Speech Rate',
+    fontUdLabel: 'UD Gothic (Universal Design)',
+    keyboardShortcutsTitle: 'Keyboard Shortcuts',
+    skipToMainContent: 'Skip to main content',
+    closeDialog: 'Close',
   },
 
   ar: {
@@ -360,6 +414,24 @@ export const TRANSLATIONS: Record<Language, Translations> = {
     aboutText: 'يدعم هذا المحول مقررات إصلاحات 1946 و1956 للغة اليابانية. على سبيل المثال، كلمة "混交" (خلط/امتزاج) كُتبت تاريخياً "混淆"، حيث استُبدل الحرف القديم 淆 بالحرف الشائع 交. يقوم KanjiForge بتحليل سياق الكلمات وتنبيهك للاختلافات بدقة متناهية.',
     kakikaeNotice: 'مزود بمحرك استبدال سياقي ذكي للحروف المشتركة صوتياً',
     langName: 'العربية',
+    // Accessibility
+    accessibilityTitle: 'إعدادات إمكانية الوصول والتيسير',
+    accessibilitySubtitle: 'متوافقة مع معايير الوصول العالمية (WCAG 2.2 AA/AAA) والميزات التعليمية المساعدة',
+    accessibilityBtn: 'إمكانية الوصول',
+    highContrastLabel: 'نمط التباين العالي (WCAG AAA)',
+    highContrastDesc: 'يضاعف نسبة التباين ويوضح الحواف لمساعدة ضعاف البصر وكبار السن',
+    showRubyLabel: 'إظهار قراءة الروبي والفرغانا (Furigana)',
+    showRubyDesc: 'عرض قراءة الهيراغانا الصوتية فوق الكانجي لمساعدة عسر القراءة ومتعلمي اللغة',
+    reducedMotionLabel: 'تقليل الحركة والانتقالات',
+    reducedMotionDesc: 'تعطيل الحركات التفاعلية والتحولات لتفادي الدوار وتسهيل التصفح',
+    ttsLabel: 'القراءة الصوتية التلقائية باليابانية (TTS)',
+    ttsDesc: 'نطق أحرف الكانجي والكلمات بنطق ياباني أصيل عبر واجهة المتصفح المدمجة دون اتصال خارجي',
+    ttsPlayBtn: 'استمع للنطق',
+    ttsSpeedLabel: 'سرعة القراءة',
+    fontUdLabel: 'خط التصميم الشامل UD Gothic',
+    keyboardShortcutsTitle: 'اختصارات لوحة المفاتيح',
+    skipToMainContent: 'الانتقال إلى المحتوى الرئيسي',
+    closeDialog: 'إغلاق',
   },
 };
 

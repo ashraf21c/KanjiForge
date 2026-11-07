@@ -1,6 +1,6 @@
 import React from 'react';
-import { BookOpen, Globe, Moon, Sun, Type } from 'lucide-react';
-import { Language, KanjiFontSize } from '../types/kanji';
+import { BookOpen, Globe, Moon, Sun, Type, Accessibility } from 'lucide-react';
+import { Language, KanjiFontSize, FontMode } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
 
 export type ActivePage = 'educational' | 'quick_word' | 'library';
@@ -8,14 +8,15 @@ export type ActivePage = 'educational' | 'quick_word' | 'library';
 interface HeaderProps {
   currentLang: Language;
   onLanguageChange: (lang: Language) => void;
-  fontMode: 'serif' | 'sans';
-  onFontModeChange: (mode: 'serif' | 'sans') => void;
+  fontMode: FontMode;
+  onFontModeChange: (mode: FontMode) => void;
   fontSize: KanjiFontSize;
   onFontSizeChange: (size: KanjiFontSize) => void;
   isDark: boolean;
   onToggleDark: () => void;
   activePage: ActivePage;
   onPageChange: (page: ActivePage) => void;
+  onOpenAccessibility: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -29,6 +30,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleDark,
   activePage,
   onPageChange,
+  onOpenAccessibility,
 }) => {
   const t = TRANSLATIONS[currentLang];
 
@@ -161,14 +163,33 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           </div>
 
-          {/* Font Toggle (Mincho / Gothic) */}
+          {/* Font Toggle (Mincho / Gothic / UD Font) */}
           <button
-            onClick={() => onFontModeChange(fontMode === 'serif' ? 'sans' : 'serif')}
-            title={fontMode === 'serif' ? t.fontSans : t.fontSerif}
+            type="button"
+            onClick={() => {
+              const nextMode: FontMode = fontMode === 'serif' ? 'sans' : fontMode === 'sans' ? 'ud' : 'serif';
+              onFontModeChange(nextMode);
+            }}
+            title={fontMode === 'serif' ? `${t.fontSerif} → ${t.fontSans}` : fontMode === 'sans' ? `${t.fontSans} → ${t.fontUdLabel}` : `${t.fontUdLabel} → ${t.fontSerif}`}
+            aria-label={`書体切替: ${fontMode === 'serif' ? t.fontSerif : fontMode === 'sans' ? t.fontSans : t.fontUdLabel}`}
             className="flex items-center gap-1 px-2 py-1.5 rounded-md text-xs font-medium text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors border border-neutral-200 dark:border-neutral-700 whitespace-nowrap"
           >
             <Type className="w-3.5 h-3.5 text-neutral-500" />
-            <span className="hidden sm:inline">{fontMode === 'serif' ? t.fontSerif : t.fontSans}</span>
+            <span className="hidden sm:inline">
+              {fontMode === 'serif' ? t.fontSerif : fontMode === 'sans' ? t.fontSans : t.fontUdLabel}
+            </span>
+          </button>
+
+          {/* Accessibility Settings Center Button */}
+          <button
+            type="button"
+            onClick={onOpenAccessibility}
+            title={`${t.accessibilityTitle} (Alt + A)`}
+            aria-label={`${t.accessibilityTitle} (Alt + A)`}
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/60 transition-all shadow-xs"
+          >
+            <Accessibility className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+            <span className="hidden lg:inline">{t.accessibilityBtn}</span>
           </button>
 
           {/* Language Switcher Segmented Control */}

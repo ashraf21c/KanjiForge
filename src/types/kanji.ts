@@ -8,6 +8,17 @@ export type Language = 'ja' | 'en' | 'ar';
 
 export type KanjiFontSize = 'sm' | 'md' | 'lg' | 'xl';
 
+export type FontMode = 'serif' | 'sans' | 'ud';
+
+export interface AccessibilitySettings {
+  fontSize: KanjiFontSize;
+  fontMode: FontMode;
+  highContrast: boolean;
+  showRuby: boolean;
+  reducedMotion: boolean;
+  speechRate: number; // 0.8 | 1.0 | 1.2
+}
+
 export interface KanjiCharInfo {
   char: string;
   unicodeHex: string;        // e.g. "U+6E26"

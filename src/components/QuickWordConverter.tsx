@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Copy,
   Check,
@@ -9,6 +9,7 @@ import {
   BookOpen,
   Layers,
   Sparkles,
+  Volume2,
 } from 'lucide-react';
 import {
   AmbiguityAlert,
@@ -16,6 +17,7 @@ import {
   KanjiCharInfo,
   KanjiFontSize,
   Language,
+  FontMode,
 } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
 import { convertLine } from '../services/converterService';
@@ -27,13 +29,17 @@ import {
   getKanjiThemeByOrder,
   getKanjiThemeForCharIndex,
 } from '../utils/kanjiThemes';
+import { getRubyReadingForChar, speakJapaneseText } from '../utils/accessibility';
 
 interface QuickWordConverterProps {
   currentLang: Language;
-  fontMode: 'serif' | 'sans';
+  fontMode: FontMode;
   fontSize?: KanjiFontSize;
   onFontSizeChange?: (size: KanjiFontSize) => void;
   onOpenInEducationalConsole: (text: string) => void;
+  showRuby?: boolean;
+  speechRate?: number;
+  onAnnounce?: (msg: string) => void;
 }
 
 export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
@@ -42,6 +48,9 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
   fontSize = 'md',
   onFontSizeChange,
   onOpenInEducationalConsole,
+  showRuby = false,
+  speechRate = 1.0,
+  onAnnounce,
 }) => {
   const t = TRANSLATIONS[currentLang];
   const [direction, setDirection] = useState<ConversionDirection>('shin_to_kyu');
@@ -115,7 +124,20 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
     }));
   };
 
-  const fontClass = fontMode === 'serif' ? 'font-serif' : 'font-sans';
+  const fontClass =
+    fontMode === 'serif'
+      ? 'font-serif'
+      : fontMode === 'ud'
+      ? 'font-ud font-medium'
+      : 'font-sans';
+
+  // Screen reader announcer hook
+  useEffect(() => {
+    if (singleWordInput && conversionResult && onAnnounce) {
+      const dirText = direction === 'shin_to_kyu' ? '旧字体' : '新字体';
+      onAnnounce(`「${singleWordInput}」を${dirText}「${conversionResult.convertedText}」に変換しました。`);
+    }
+  }, [singleWordInput, conversionResult.convertedText, direction, onAnnounce]);
 
   const sizeStyles = {
     sm: {
@@ -335,13 +357,25 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
               <div className="flex items-center gap-4 flex-wrap">
                 {/* Input word */}
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
-                    {direction === 'shin_to_kyu' ? t.shinShort : t.kyuShort}
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-neutral-400 uppercase tracking-wider">
+                      {direction === 'shin_to_kyu' ? t.shinShort : t.kyuShort}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => speakJapaneseText(singleWordInput, speechRate)}
+                      title={`「${singleWordInput}」の音声を再生`}
+                      aria-label={`「${singleWordInput}」の音声を再生`}
+                      className="p-1 rounded text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <div className={`${sizeStyles.output} font-bold text-neutral-900 dark:text-neutral-100 flex items-center gap-1.5 ${fontClass}`}>
                     {conversionResult.inputChars.map((c, i) => {
                       const theme = getKanjiThemeForCharIndex(i, conversionResult.changedIndices);
                       const isSelected = activeCharIndex === i;
+                      const rubyReading = showRuby ? getRubyReadingForChar(c.char) : null;
 
                       return (
                         <button
@@ -359,7 +393,16 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
                                 }`
                           }`}
                         >
-                          <span>{c.char}</span>
+                          {rubyReading ? (
+                            <ruby>
+                              <span>{c.char}</span>
+                              <rt className="text-[10px] font-normal opacity-85 select-none leading-none">
+                                {rubyReading}
+                              </rt>
+                            </ruby>
+                          ) : (
+                            <span>{c.char}</span>
+                          )}
                           {theme && (
                             <span
                               className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-none shadow-2xs ${theme.badgeBg}`}
@@ -378,13 +421,25 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
 
                 {/* Converted word */}
                 <div className="flex flex-col">
-                  <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
-                    {direction === 'shin_to_kyu' ? t.kyuShort : t.shinShort} ({t.singleWordResult})
-                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[11px] font-semibold text-neutral-500 dark:text-neutral-400 uppercase tracking-wider">
+                      {direction === 'shin_to_kyu' ? t.kyuShort : t.shinShort} ({t.singleWordResult})
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => speakJapaneseText(conversionResult.convertedText, speechRate)}
+                      title={`「${conversionResult.convertedText}」の音声を再生`}
+                      aria-label={`「${conversionResult.convertedText}」の音声を再生`}
+                      className="p-1 rounded text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                    >
+                      <Volume2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                   <div className={`${sizeStyles.output} font-bold flex items-center gap-1.5 ${fontClass}`}>
                     {conversionResult.outputChars.map((c, i) => {
                       const theme = getKanjiThemeForCharIndex(i, conversionResult.changedIndices);
                       const isSelected = activeCharIndex === i;
+                      const rubyReading = showRuby ? getRubyReadingForChar(c.char) : null;
 
                       return (
                         <button
@@ -402,7 +457,16 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
                                 }`
                           }`}
                         >
-                          <span>{c.char}</span>
+                          {rubyReading ? (
+                            <ruby>
+                              <span>{c.char}</span>
+                              <rt className="text-[10px] font-normal opacity-85 select-none leading-none">
+                                {rubyReading}
+                              </rt>
+                            </ruby>
+                          ) : (
+                            <span>{c.char}</span>
+                          )}
                           {theme && (
                             <span
                               className={`text-[10px] font-bold px-1.5 py-0.2 rounded-full leading-none shadow-2xs ${theme.badgeBg}`}
@@ -714,6 +778,7 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
                     orderSymbol={theme.numberSymbol}
                     pairTitle={`「${inChar.char}」→「${outChar.char}」`}
                     showHeader={false}
+                    speechRate={speechRate}
                   />
                 </div>
               );
@@ -774,6 +839,7 @@ export const QuickWordConverter: React.FC<QuickWordConverterProps> = ({
               colorTheme={getKanjiThemeForCharIndex(activeCharIndex, conversionResult.changedIndices)?.key}
               orderSymbol={getKanjiThemeForCharIndex(activeCharIndex, conversionResult.changedIndices)?.numberSymbol}
               showHeader={false}
+              speechRate={speechRate}
             />
           </div>
         )}

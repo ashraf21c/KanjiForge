@@ -1,6 +1,6 @@
 import React from 'react';
 import { BookOpen, Sparkles, ArrowRight, ExternalLink, HelpCircle } from 'lucide-react';
-import { Language } from '../types/kanji';
+import { Language, FontMode } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
 import { AMBIGUITY_DEFINITIONS } from '../data/ambiguityDict';
 
@@ -8,7 +8,7 @@ import { getKanjiLevel } from '../data/kanjiLevels';
 
 interface OrthographyLibraryProps {
   currentLang: Language;
-  fontMode: 'serif' | 'sans';
+  fontMode: FontMode;
   onSelectCompoundForTesting: (text: string) => void;
 }
 
@@ -18,7 +18,12 @@ export const OrthographyLibrary: React.FC<OrthographyLibraryProps> = ({
   onSelectCompoundForTesting,
 }) => {
   const t = TRANSLATIONS[currentLang];
-  const fontClass = fontMode === 'serif' ? 'font-serif' : 'font-sans';
+  const fontClass =
+    fontMode === 'serif'
+      ? 'font-serif'
+      : fontMode === 'ud'
+      ? 'font-ud font-medium'
+      : 'font-sans';
 
   const ambiguityList = Object.values(AMBIGUITY_DEFINITIONS);
 

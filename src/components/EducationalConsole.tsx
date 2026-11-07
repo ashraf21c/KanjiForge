@@ -12,6 +12,7 @@ import {
   FileText,
   ChevronRight,
   CheckCircle2,
+  Volume2,
 } from 'lucide-react';
 import {
   AmbiguityAlert,
@@ -20,6 +21,7 @@ import {
   KanjiCharInfo,
   KanjiFontSize,
   Language,
+  FontMode,
 } from '../types/kanji';
 import { TRANSLATIONS } from '../i18n/translations';
 import { convertBatch } from '../services/converterService';
@@ -27,13 +29,17 @@ import { CharacterInspector } from './CharacterInspector';
 import { EncodingTable } from './EncodingTable';
 import { AmbiguityModal } from './AmbiguityModal';
 import { getKanjiThemeForCharIndex } from '../utils/kanjiThemes';
+import { getRubyReadingForChar, speakJapaneseText } from '../utils/accessibility';
 
 interface EducationalConsoleProps {
   currentLang: Language;
-  fontMode: 'serif' | 'sans';
+  fontMode: FontMode;
   fontSize?: KanjiFontSize;
   onFontSizeChange?: (size: KanjiFontSize) => void;
   initialText?: string;
+  showRuby?: boolean;
+  speechRate?: number;
+  onAnnounce?: (msg: string) => void;
 }
 
 const SAMPLE_PRESETS: Record<
@@ -129,6 +135,9 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
   fontSize = 'md',
   onFontSizeChange,
   initialText,
+  showRuby = false,
+  speechRate = 1.0,
+  onAnnounce,
 }) => {
   const t = TRANSLATIONS[currentLang];
 
@@ -249,7 +258,12 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
     }
   };
 
-  const fontClass = fontMode === 'serif' ? 'font-serif' : 'font-sans';
+  const fontClass =
+    fontMode === 'serif'
+      ? 'font-serif'
+      : fontMode === 'ud'
+      ? 'font-ud font-medium'
+      : 'font-sans';
 
   const sizeStyles = {
     sm: {
@@ -661,19 +675,31 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                         </td>
                         <td className={`py-2.5 px-4 text-neutral-900 dark:text-neutral-100 ${sizeStyles.cell} ${fontClass}`}>
                           <div className="flex items-center gap-1 flex-wrap">
-                            {line.inputChars.map((inChar, cIdx) => (
-                              <button
-                                key={cIdx}
-                                type="button"
-                                onClick={() =>
-                                  handleSelectCharForInspection(inChar, line.outputChars[cIdx])
-                                }
-                                title={`Click to inspect ${inChar.char} (${inChar.unicodeHex})`}
-                                className="hover:bg-amber-100 dark:hover:bg-amber-950/60 hover:text-amber-900 dark:hover:text-amber-200 px-1 py-0.5 rounded transition-colors"
-                              >
-                                {inChar.char}
-                              </button>
-                            ))}
+                            {line.inputChars.map((inChar, cIdx) => {
+                              const rubyReading = showRuby ? getRubyReadingForChar(inChar.char) : null;
+                              return (
+                                <button
+                                  key={cIdx}
+                                  type="button"
+                                  onClick={() =>
+                                    handleSelectCharForInspection(inChar, line.outputChars[cIdx])
+                                  }
+                                  title={`Click to inspect ${inChar.char} (${inChar.unicodeHex})`}
+                                  className="hover:bg-amber-100 dark:hover:bg-amber-950/60 hover:text-amber-900 dark:hover:text-amber-200 px-1 py-0.5 rounded transition-colors"
+                                >
+                                  {rubyReading ? (
+                                    <ruby>
+                                      <span>{inChar.char}</span>
+                                      <rt className="text-[9px] font-normal opacity-85 select-none leading-none">
+                                        {rubyReading}
+                                      </rt>
+                                    </ruby>
+                                  ) : (
+                                    <span>{inChar.char}</span>
+                                  )}
+                                </button>
+                              );
+                            })}
                           </div>
                         </td>
                         <td className={`py-2.5 px-4 text-neutral-900 dark:text-neutral-100 ${sizeStyles.cell} ${fontClass}`}>
@@ -683,6 +709,7 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                               const ambForChar = line.ambiguities.find(
                                 a => a.charIndex === cIdx || (a.compoundFound && a.charIndex <= cIdx)
                               );
+                              const rubyReading = showRuby ? getRubyReadingForChar(outChar.char) : null;
 
                               return (
                                 <button
@@ -705,7 +732,16 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                                       : 'hover:bg-neutral-100 dark:hover:bg-neutral-800'
                                   }`}
                                 >
-                                  {outChar.char}
+                                  {rubyReading ? (
+                                    <ruby>
+                                      <span>{outChar.char}</span>
+                                      <rt className="text-[9px] font-normal opacity-85 select-none leading-none">
+                                        {rubyReading}
+                                      </rt>
+                                    </ruby>
+                                  ) : (
+                                    <span>{outChar.char}</span>
+                                  )}
                                 </button>
                               );
                             })}
@@ -731,22 +767,33 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
                           )}
                         </td>
                         <td className="py-2.5 px-4 text-right">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (line.inputChars.length > 0) {
-                                const targetIdx = line.changedIndices.length > 0 ? line.changedIndices[0] : 0;
-                                handleSelectCharForInspection(
-                                  line.inputChars[targetIdx] || line.inputChars[0],
-                                  line.outputChars[targetIdx] || line.outputChars[0]
-                                );
-                              }
-                            }}
-                            className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
-                            title="この行の変換文字をインスペクターで開く"
-                          >
-                            <FileCode className="w-3.5 h-3.5" />
-                          </button>
+                          <div className="flex items-center justify-end gap-1">
+                            <button
+                              type="button"
+                              onClick={() => speakJapaneseText(line.convertedText, speechRate)}
+                              className="text-neutral-400 hover:text-amber-600 dark:hover:text-amber-400 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                              title={`第${idx + 1}行の音声を再生`}
+                              aria-label={`第${idx + 1}行の音声を再生: ${line.convertedText}`}
+                            >
+                              <Volume2 className="w-3.5 h-3.5" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (line.inputChars.length > 0) {
+                                  const targetIdx = line.changedIndices.length > 0 ? line.changedIndices[0] : 0;
+                                  handleSelectCharForInspection(
+                                    line.inputChars[targetIdx] || line.inputChars[0],
+                                    line.outputChars[targetIdx] || line.outputChars[0]
+                                  );
+                                }
+                              }}
+                              className="text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 p-1 rounded hover:bg-neutral-100 dark:hover:bg-neutral-800"
+                              title="この行の変換文字をインスペクターで開く"
+                            >
+                              <FileCode className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -852,6 +899,7 @@ export const EducationalConsole: React.FC<EducationalConsoleProps> = ({
               outputChar={selectedOutputChar}
               currentLang={currentLang}
               fontMode={fontMode}
+              speechRate={speechRate}
             />
           </div>
         )}
